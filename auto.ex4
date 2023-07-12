@@ -14,61 +14,42 @@ extern double StopLoss = 100.0;
 extern double TrailingStop = 2.0;
 extern double TrailingStep = 3.0;
 
-int OnInit() {
-  // Set timer to trigger every second
-  EventSetTimer(1);
-  return(INIT_SUCCEEDED);
-}
-
-void OnDeinit(const int reason) {
-  // Clear the timer when the EA is removed
-  EventKillTimer();
-}
-
-void OnTimer() {
+void OnTick() {
   double newStopLoss;
   double newTakeProfit;
-
-  // Create text label
-  string labelName = "MyLabel";
-  if(!ObjectCreate(0, labelName, OBJ_LABEL, 0, 0, 0)) {
-    Print("ObjectCreate failed with error ", GetLastError());
-  }
-  ObjectSetInteger(0, labelName, OBJPROP_CORNER, CORNER_LEFT_LOWER);
-  ObjectSetInteger(0, labelName, OBJPROP_XDISTANCE, 20);
-  ObjectSetInteger(0, labelName, OBJPROP_YDISTANCE, 20);
-  ObjectSetText(labelName, "The Line", 24, "Arial", clrRed);
 
   // Check for open trades
   for(int i = OrdersTotal() - 1; i >= 0; i--) {
     if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
       if(OrderSymbol() == Symbol()) {
-        // Check if trade has moved in profit by TrailingStep
+        // Set initial stop loss and take profit
         if(OrderType() == OP_BUY) {
           newTakeProfit = OrderOpenPrice() + Point * TakeProfit;
-          if((Bid - OrderOpenPrice()) >= Point * TrailingStep) {
-            // Move stop loss if new level is better
-            newStopLoss = Bid - Point * (StopLoss - TrailingStop);
-            if(newStopLoss > OrderStopLoss()) {
-              if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
-                Print("OrderModify failed with error ", GetLastError());
-              }
-            }
-          } else {
-            newStopLoss = OrderOpenPrice() - Point * StopLoss;
-          }
+          newStopLoss = OrderOpenPrice() - Point * StopLoss;
         } else if(OrderType() == OP_SELL) {
           newTakeProfit = OrderOpenPrice() - Point * TakeProfit;
-          if((OrderOpenPrice() - Ask) >= Point * TrailingStep) {
-            // Move stop loss if new level is better
-            newStopLoss = Ask + Point * (StopLoss - TrailingStop);
-            if(newStopLoss < OrderStopLoss()) {
-              if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
-                Print("OrderModify failed with error ", GetLastError());
-              }
+          newStopLoss = OrderOpenPrice() + Point * StopLoss;
+        }
+        if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
+          Print("OrderModify failed with error ", GetLastError());
+        }
+
+        // Check if trade has moved in profit by TrailingStep
+        if(OrderType() == OP_BUY && (Bid - OrderOpenPrice()) >= Point * TrailingStep) {
+          // Move stop loss if new level is better
+          newStopLoss = Bid - Point * (StopLoss - TrailingStop);
+          if(newStopLoss > OrderStopLoss()) {
+            if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, OrderTakeProfit(), 0, clrNONE)) {
+              Print("OrderModify failed with error ", GetLastError());
             }
-          } else {
-            newStopLoss = OrderOpenPrice() + Point * StopLoss;
+          }
+        } else if(OrderType() == OP_SELL && (OrderOpenPrice() - Ask) >= Point * TrailingStep) {
+          // Move stop loss if new level is better
+          newStopLoss = Ask + Point * (StopLoss - TrailingStop);
+          if(newStopLoss < OrderStopLoss()) {
+            if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, OrderTakeProfit(), 0, clrNONE)) {
+              Print("OrderModify failed with error ", GetLastError());
+            }
           }
         }
       }
