@@ -16,22 +16,33 @@ extern double TrailingStep = 3.0;
 
 int start() {
   double newStopLoss;
+  double newTakeProfit;
 
   // Check for open trades
   for(int i = OrdersTotal() - 1; i >= 0; i--) {
     if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
       if(OrderSymbol() == Symbol()) {
         // Check if trade has moved in profit by TrailingStep
-        if(OrderType() == OP_BUY && (Bid - OrderOpenPrice()) >= Point * TrailingStep) {
-          // Move stop loss
-          newStopLoss = Bid - Point * (StopLoss - TrailingStop);
-          if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, OrderTakeProfit(), 0, clrNONE)) {
+        if(OrderType() == OP_BUY) {
+          newTakeProfit = OrderOpenPrice() + Point * TakeProfit;
+          if((Bid - OrderOpenPrice()) >= Point * TrailingStep) {
+            // Move stop loss
+            newStopLoss = Bid - Point * (StopLoss - TrailingStop);
+          } else {
+            newStopLoss = OrderOpenPrice() - Point * StopLoss;
+          }
+          if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
             Print("OrderModify failed with error ", GetLastError());
           }
-        } else if(OrderType() == OP_SELL && (OrderOpenPrice() - Ask) >= Point * TrailingStep) {
-          // Move stop loss
-          newStopLoss = Ask + Point * (StopLoss - TrailingStop);
-          if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, OrderTakeProfit(), 0, clrNONE)) {
+        } else if(OrderType() == OP_SELL) {
+          newTakeProfit = OrderOpenPrice() - Point * TakeProfit;
+          if((OrderOpenPrice() - Ask) >= Point * TrailingStep) {
+            // Move stop loss
+            newStopLoss = Ask + Point * (StopLoss - TrailingStop);
+          } else {
+            newStopLoss = OrderOpenPrice() + Point * StopLoss;
+          }
+          if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
             Print("OrderModify failed with error ", GetLastError());
           }
         }
