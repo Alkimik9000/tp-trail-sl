@@ -22,16 +22,18 @@ void OnTick() {
   for(int i = OrdersTotal() - 1; i >= 0; i--) {
     if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
       if(OrderSymbol() == Symbol()) {
-        // Set initial stop loss and take profit
-        if(OrderType() == OP_BUY) {
-          newTakeProfit = OrderOpenPrice() + Point * TakeProfit;
-          newStopLoss = OrderOpenPrice() - Point * StopLoss;
-        } else if(OrderType() == OP_SELL) {
-          newTakeProfit = OrderOpenPrice() - Point * TakeProfit;
-          newStopLoss = OrderOpenPrice() + Point * StopLoss;
-        }
-        if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
-          Print("OrderModify failed with error ", GetLastError());
+        // Set initial stop loss and take profit if they haven't been set yet
+        if(OrderStopLoss() == 0 && OrderTakeProfit() == 0) {
+          if(OrderType() == OP_BUY) {
+            newTakeProfit = OrderOpenPrice() + Point * TakeProfit;
+            newStopLoss = OrderOpenPrice() - Point * StopLoss;
+          } else if(OrderType() == OP_SELL) {
+            newTakeProfit = OrderOpenPrice() - Point * TakeProfit;
+            newStopLoss = OrderOpenPrice() + Point * StopLoss;
+          }
+          if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
+            Print("OrderModify failed with error ", GetLastError());
+          }
         }
 
         // Check if trade has moved in profit by TrailingStep
