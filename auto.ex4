@@ -13,7 +13,6 @@ extern double TakeProfit = 100.0;
 extern double StopLoss = 100.0;
 extern double TrailingStop = 2.0;
 extern double TrailingStep = 3.0;
-extern int MagicNumber = 12345; // Unique identifier for this EA's trades
 
 int start() {
   double newStopLoss;
@@ -21,7 +20,7 @@ int start() {
   // Check for open trades
   for(int i = OrdersTotal() - 1; i >= 0; i--) {
     if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
-      if(OrderSymbol() == Symbol() && OrderMagicNumber() == MagicNumber) {
+      if(OrderSymbol() == Symbol()) {
         // Check if trade has moved in profit by TrailingStep
         if(OrderType() == OP_BUY && (Bid - OrderOpenPrice()) >= Point * TrailingStep) {
           // Move stop loss
