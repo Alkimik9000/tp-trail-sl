@@ -1,0 +1,37 @@
+//+------------------------------------------------------------------+
+//|                                                      MyEA.mq4    |
+//|                        Copyright 2023, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+
+#property copyright "Copyright 2023, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+
+// Parameters
+extern double TakeProfit = 100.0;
+extern double StopLoss = 100.0;
+extern double TrailingStop = 2.0;
+extern double TrailingStep = 3.0;
+
+int start() {
+  // Check for open trades
+  for(int i = OrdersTotal() - 1; i >= 0; i--) {
+    if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
+      if(OrderSymbol() == Symbol() && OrderMagicNumber() == MagicNumber) {
+        // Check if trade has moved in profit by TrailingStep
+        if(OrderType() == OP_BUY && (Bid - OrderOpenPrice()) >= Point * TrailingStep) {
+          // Move stop loss
+          double newStopLoss = Bid - Point * (StopLoss - TrailingStop);
+          OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, OrderTakeProfit(), 0, clrNONE);
+        } else if(OrderType() == OP_SELL && (OrderOpenPrice() - Ask) >= Point * TrailingStep) {
+          // Move stop loss
+          double newStopLoss = Ask + Point * (StopLoss - TrailingStop);
+          OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, OrderTakeProfit(), 0, clrNONE);
+        }
+      }
+    }
+  }
+  return(0);
+}
+//+------------------------------------------------------------------+
