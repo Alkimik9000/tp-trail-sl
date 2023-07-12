@@ -14,7 +14,7 @@ extern double StopLoss = 100.0;
 extern double TrailingStop = 2.0;
 extern double TrailingStep = 3.0;
 
-int start() {
+void OnTick() {
   double newStopLoss;
   double newTakeProfit;
 
@@ -63,6 +63,5 @@ int start() {
       }
     }
   }
-  return(0);
 }
 //+------------------------------------------------------------------+
