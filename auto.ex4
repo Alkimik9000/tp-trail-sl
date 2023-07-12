@@ -14,7 +14,18 @@ extern double StopLoss = 100.0;
 extern double TrailingStop = 2.0;
 extern double TrailingStep = 3.0;
 
-void OnTick() {
+int OnInit() {
+  // Set timer to trigger every second
+  EventSetTimer(1);
+  return(INIT_SUCCEEDED);
+}
+
+void OnDeinit(const int reason) {
+  // Clear the timer when the EA is removed
+  EventKillTimer();
+}
+
+void OnTimer() {
   double newStopLoss;
   double newTakeProfit;
 
