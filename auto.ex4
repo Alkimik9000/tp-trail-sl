@@ -18,6 +18,16 @@ int start() {
   double newStopLoss;
   double newTakeProfit;
 
+  // Create text label
+  string labelName = "MyLabel";
+  if(!ObjectCreate(0, labelName, OBJ_LABEL, 0, 0, 0)) {
+    Print("ObjectCreate failed with error ", GetLastError());
+  }
+  ObjectSetInteger(0, labelName, OBJPROP_CORNER, CORNER_LEFT_LOWER);
+  ObjectSetInteger(0, labelName, OBJPROP_XDISTANCE, 20);
+  ObjectSetInteger(0, labelName, OBJPROP_YDISTANCE, 20);
+  ObjectSetText(labelName, "The Line", 24, "Arial", clrRed);
+
   // Check for open trades
   for(int i = OrdersTotal() - 1; i >= 0; i--) {
     if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
@@ -26,24 +36,28 @@ int start() {
         if(OrderType() == OP_BUY) {
           newTakeProfit = OrderOpenPrice() + Point * TakeProfit;
           if((Bid - OrderOpenPrice()) >= Point * TrailingStep) {
-            // Move stop loss
+            // Move stop loss if new level is better
             newStopLoss = Bid - Point * (StopLoss - TrailingStop);
+            if(newStopLoss > OrderStopLoss()) {
+              if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
+                Print("OrderModify failed with error ", GetLastError());
+              }
+            }
           } else {
             newStopLoss = OrderOpenPrice() - Point * StopLoss;
-          }
-          if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
-            Print("OrderModify failed with error ", GetLastError());
           }
         } else if(OrderType() == OP_SELL) {
           newTakeProfit = OrderOpenPrice() - Point * TakeProfit;
           if((OrderOpenPrice() - Ask) >= Point * TrailingStep) {
-            // Move stop loss
+            // Move stop loss if new level is better
             newStopLoss = Ask + Point * (StopLoss - TrailingStop);
+            if(newStopLoss < OrderStopLoss()) {
+              if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
+                Print("OrderModify failed with error ", GetLastError());
+              }
+            }
           } else {
             newStopLoss = OrderOpenPrice() + Point * StopLoss;
-          }
-          if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
-            Print("OrderModify failed with error ", GetLastError());
           }
         }
       }
