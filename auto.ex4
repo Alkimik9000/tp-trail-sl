@@ -1,43 +1,67 @@
-// Check for open trades
-for(int i = OrdersTotal() - 1; i >= 0; i--) {
-  if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
-    Print("Selected order with ticket ", OrderTicket());
-    if(OrderSymbol() == Symbol()) {
-      Print("Order symbol matches chart symbol");
-      // Check if trade has moved in profit by TrailingStep
-      if(OrderType() == OP_BUY) {
-        Print("Order type is OP_BUY");
-        newTakeProfit = OrderOpenPrice() + Point * TakeProfit;
-        if((Bid - OrderOpenPrice()) >= Point * TrailingStep) {
-          Print("Trade has moved in profit by TrailingStep");
-          // Move stop loss if new level is better
-          newStopLoss = Bid - Point * (StopLoss - TrailingStop);
-          if(newStopLoss > OrderStopLoss()) {
-            Print("New stop loss is better than current stop loss");
-            if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
-              Print("OrderModify failed with error ", GetLastError());
+//+------------------------------------------------------------------+
+//|                                                      MyEA.mq4    |
+//|                        Copyright 2023, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+
+#property copyright "Copyright 2023, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+
+// Parameters
+extern double TakeProfit = 100.0;
+extern double StopLoss = 100.0;
+extern double TrailingStop = 2.0;
+extern double TrailingStep = 3.0;
+
+void OnTick() {
+  double newStopLoss;
+  double newTakeProfit;
+
+  // Create text label
+  string labelName = "MyLabel";
+  if(!ObjectCreate(0, labelName, OBJ_LABEL, 0, 0, 0)) {
+    Print("ObjectCreate failed with error ", GetLastError());
+  }
+  ObjectSetInteger(0, labelName, OBJPROP_CORNER, CORNER_LEFT_LOWER);
+  ObjectSetInteger(0, labelName, OBJPROP_XDISTANCE, 20);
+  ObjectSetInteger(0, labelName, OBJPROP_YDISTANCE, 20);
+  ObjectSetText(labelName, "The Line", 24, "Arial", clrRed);
+
+  // Check for open trades
+  for(int i = OrdersTotal() - 1; i >= 0; i--) {
+    if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
+      if(OrderSymbol() == Symbol()) {
+        // Check if trade has moved in profit by TrailingStep
+        if(OrderType() == OP_BUY) {
+          newTakeProfit = OrderOpenPrice() + Point * TakeProfit;
+          if((Bid - OrderOpenPrice()) >= Point * TrailingStep) {
+            // Move stop loss if new level is better
+            newStopLoss = Bid - Point * (StopLoss - TrailingStop);
+            if(newStopLoss > OrderStopLoss()) {
+              if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
+                Print("OrderModify failed with error ", GetLastError());
+              }
             }
+          } else {
+            newStopLoss = OrderOpenPrice() - Point * StopLoss;
           }
-        } else {
-          newStopLoss = OrderOpenPrice() - Point * StopLoss;
-        }
-      } else if(OrderType() == OP_SELL) {
-        Print("Order type is OP_SELL");
-        newTakeProfit = OrderOpenPrice() - Point * TakeProfit;
-        if((OrderOpenPrice() - Ask) >= Point * TrailingStep) {
-          Print("Trade has moved in profit by TrailingStep");
-          // Move stop loss if new level is better
-          newStopLoss = Ask + Point * (StopLoss - TrailingStop);
-          if(newStopLoss < OrderStopLoss()) {
-            Print("New stop loss is better than current stop loss");
-            if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
-              Print("OrderModify failed with error ", GetLastError());
+        } else if(OrderType() == OP_SELL) {
+          newTakeProfit = OrderOpenPrice() - Point * TakeProfit;
+          if((OrderOpenPrice() - Ask) >= Point * TrailingStep) {
+            // Move stop loss if new level is better
+            newStopLoss = Ask + Point * (StopLoss - TrailingStop);
+            if(newStopLoss < OrderStopLoss()) {
+              if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, newTakeProfit, 0, clrNONE)) {
+                Print("OrderModify failed with error ", GetLastError());
+              }
             }
+          } else {
+            newStopLoss = OrderOpenPrice() + Point * StopLoss;
           }
-        } else {
-          newStopLoss = OrderOpenPrice() + Point * StopLoss;
         }
       }
     }
   }
 }
+//+------------------------------------------------------------------+
